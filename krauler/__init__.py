@@ -1,24 +1,18 @@
-import os
 import cgi
 import yaml
 import logging
 import requests
 from urlparse import urljoin, urlparse
 from lxml import html
-from tempfile import mkstemp
-
-from aleph.crawlers.crawler import Crawler
 
 from krauler.util import as_list, normalize_url
 
 log = logging.getLogger(__name__)
 
 
-class WebCrawlerState(object):
+class Krauler(object):
 
-    def __init__(self, crawler, source, config):
-        self.crawler = crawler
-        self.source = source
+    def __init__(self, config):
         self.config = config
         self.seen = set([])
 
@@ -36,7 +30,7 @@ class WebCrawlerState(object):
         return self._seeds
 
     def queue(self, url):
-        page = WebCrawlerPage(self, url)
+        page = KraulerPage(self, url)
         # TODO: add celery?
         page.process()
 
@@ -65,30 +59,10 @@ class WebCrawlerState(object):
         return False
 
     def emit(self, page):
-        meta = self.crawler.metadata()
-        meta.data.update(self.config.get('meta', {}))
-        meta.source_url = page.normalized_url
-        meta.foreign_id = page.id
-        meta.headers = page.response.headers
-
-        from pprint import pprint
-        pprint(meta.to_dict())
-
-        fh, file_path = mkstemp(suffix='.%s' % meta.extension)
-        try:
-            fh = os.fdopen(fh, 'w')
-            fh.write(page.response.content)
-            fh.close()
-            self.crawler.emit_file(self.source, meta,
-                                   file_path, move=True)
-        except Exception as ex:
-            log.exception(ex)
-        finally:
-            if os.path.isfile(file_path):
-                os.unlink(file_path)
+        log.warning("Emitted: %r, no action defined to store!")
 
 
-class WebCrawlerPage(object):
+class KraulerPage(object):
 
     def __init__(self, state, url):
         self.state = state
@@ -158,25 +132,3 @@ class WebCrawlerPage(object):
 
     def retain(self):
         self.state.emit(self)
-
-
-class WebCrawler(Crawler):
-
-    name = 'web'
-
-    def crawl_source(self, foreign_id, data):
-        source = self.create_source(foreign_id=foreign_id,
-                                    label=data.get('label'))
-
-        state = WebCrawlerState(self, source, data)
-        for url in state.seeds:
-            page = WebCrawlerPage(state, url)
-            page.process()
-
-    def crawl(self, config=None, source=None):
-        with open(config, 'rb') as fh:
-            config = yaml.load(fh)
-            for name, data in config.get('sources', {}).items():
-                if source is None or source == name:
-                    foreign_id = '%s:%s' % (self.name, name)
-                    self.crawl_source(foreign_id, data)
