@@ -3,29 +3,15 @@ import cgi
 import yaml
 import logging
 import requests
-import urlnorm
-from urlparse import urljoin, urlparse, urldefrag
+from urlparse import urljoin, urlparse
 from lxml import html
 from tempfile import mkstemp
 
 from aleph.crawlers.crawler import Crawler
 
+from krauler.util import as_list, normalize_url
+
 log = logging.getLogger(__name__)
-
-
-def as_list(attr):
-    if attr is None:
-        return []
-    if isinstance(attr, (list, set, tuple)):
-        return attr
-    return [attr]
-
-
-def normalize_url(url):
-    url = urlnorm.norm(url)
-    url, _ = urldefrag(url)
-    url = url.rstrip('/')
-    return url
 
 
 class WebCrawlerState(object):
