@@ -4,7 +4,7 @@ from urlparse import urlparse
 from Queue import Queue
 from threading import RLock
 
-from krauler.page import KraulerPage
+from krauler.page import Page
 from krauler.util import as_list, normalize_url
 
 log = logging.getLogger(__name__)
@@ -32,6 +32,10 @@ class Krauler(object):
             self._seeds = [s for s in seeds if s is not None]
         return self._seeds
 
+    @property
+    def depth(self):
+        return self.config.get('depth')
+
     def crawl(self, url, path):
         if self.should_crawl(url):
             self.queue.put((url, path))
@@ -55,7 +59,7 @@ class Krauler(object):
         log.info("Crawling %r (%d queued, %s seen)", url, self.queue.qsize(),
                  len(self.seen))
         try:
-            page = KraulerPage(self, url, path)
+            page = Page(self, url, path)
             page.process()
         except Exception as exc:
             log.exception(exc)

@@ -2,13 +2,17 @@ import cgi
 import logging
 from urlparse import urljoin
 from lxml import html
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
 
 from krauler.util import normalize_url
 
 log = logging.getLogger(__name__)
 
 
-class KraulerPage(object):
+class Page(object):
 
     def __init__(self, state, url, path):
         self.state = state
@@ -18,13 +22,26 @@ class KraulerPage(object):
     @property
     def response(self):
         if not hasattr(self, '_response'):
-            self._response = self.state.session.get(self.url)
+            self._response = self.state.session.get(self.url, stream=True)
         return self._response
+
+    @property
+    def content(self):
+        if not hasattr(self, '_content'):
+            data = StringIO()
+            try:
+                for chunk in self.response.iter_content(chunk_size=1024):
+                    if chunk:
+                        data.write(chunk)
+                self._content = data
+            finally:
+                self.response.close()
+        return self._content.getvalue()
 
     @property
     def doc(self):
         if not hasattr(self, '_doc'):
-            self._doc = html.fromstring(self.response.content)
+            self._doc = html.fromstring(self.content)
         return self._doc
 
     @property
@@ -44,6 +61,12 @@ class KraulerPage(object):
         return self.path + [self.normalized_url]
 
     @property
+    def path_end(self):
+        if self.state.depth is None or self.state.depth < 0:
+            return False
+        return len(self.path) >= self.state.depth
+
+    @property
     def mime_type(self):
         content_type = self.response.headers.get('content-type')
         if content_type is None:
@@ -58,9 +81,15 @@ class KraulerPage(object):
         return False
 
     def parse(self):
+        if not self.is_html:
+            return
+        if self.path_end:
+            return
+
         tags = [('a', 'href'), ('img', 'src'), ('link', 'href'),
                 ('iframe', 'src')]
 
+        # TODO: check rel="canonical"
         urls = set([])
         for tag_name, attr_name in tags:
             for tag in self.doc.findall('.//%s' % tag_name):
@@ -85,8 +114,7 @@ class KraulerPage(object):
 
         if self.state.should_retain(self):
             self.retain()
-        if self.is_html:
-            self.parse()
+        self.parse()
 
     def retain(self):
         self.state.emit(self)
