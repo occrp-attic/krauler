@@ -61,7 +61,7 @@ class Page(object):
         return self.path + [self.normalized_url]
 
     @property
-    def path_end(self):
+    def terminate_path(self):
         if self.state.depth is None or self.state.depth < 0:
             return False
         return len(self.path) >= self.state.depth
@@ -83,7 +83,7 @@ class Page(object):
     def parse(self):
         if not self.is_html:
             return
-        if self.path_end:
+        if self.terminate_path:
             return
 
         tags = [('a', 'href'), ('img', 'src'), ('link', 'href'),
@@ -105,10 +105,13 @@ class Page(object):
 
     def process(self):
         if not self.state.should_crawl(self.normalized_url):
+            log.debug("Skipping: %r", self.normalized_url)
             return
 
         self.state.mark_seen(self.normalized_url)
         if self.response.status_code > 300:
+            log.warning("Failure: %r, status: %r", self.normalized_url,
+                        self.response.status_code)
             return
         self.state.mark_seen(self.normalized_url)
 
