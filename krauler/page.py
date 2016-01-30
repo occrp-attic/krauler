@@ -10,9 +10,10 @@ log = logging.getLogger(__name__)
 
 class KraulerPage(object):
 
-    def __init__(self, state, url):
+    def __init__(self, state, url, path):
         self.state = state
         self.url = url
+        self.path = path
 
     @property
     def response(self):
@@ -31,19 +32,28 @@ class KraulerPage(object):
         url = self.url
         if hasattr(self, '_response'):
             url = self._response.url
-        return normalize_url(url)
+            url = normalize_url(url)
+        return url
 
     @property
     def id(self):
         return self.normalized_url
 
     @property
-    def is_html(self):
+    def next_path(self):
+        return self.path + [self.normalized_url]
+
+    @property
+    def mime_type(self):
         content_type = self.response.headers.get('content-type')
         if content_type is None:
-            return True
+            return 'text/html'
         mime_type, _ = cgi.parse_header(content_type)
-        if 'html' in mime_type:
+        return mime_type
+
+    @property
+    def is_html(self):
+        if 'html' in self.mime_type:
             return True
         return False
 
@@ -57,19 +67,21 @@ class KraulerPage(object):
                 attr = tag.get(attr_name)
                 if attr is None:
                     continue
-                urls.add(urljoin(self.normalized_url, attr))
+                url = normalize_url(urljoin(self.normalized_url, attr))
+                if url is not None:
+                    urls.add(url)
 
         for url in urls:
-            self.state.queue(url)
+            self.state.crawl(url, self.next_path)
 
     def process(self):
         if not self.state.should_crawl(self.normalized_url):
             return
 
-        self.state.seen.add(self.normalized_url)
+        self.state.mark_seen(self.normalized_url)
         if self.response.status_code > 300:
             return
-        self.state.seen.add(self.normalized_url)
+        self.state.mark_seen(self.normalized_url)
 
         if self.state.should_retain(self):
             self.retain()

@@ -11,7 +11,10 @@ def as_list(attr):
 
 
 def normalize_url(url):
-    url = urlnorm.norm(url)
-    url, _ = urldefrag(url)
-    url = url.rstrip('/')
-    return url
+    try:
+        url = urlnorm.norm(url)
+        url, _ = urldefrag(url)
+        url = url.rstrip('/')
+        return url
+    except:
+        return None
