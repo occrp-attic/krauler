@@ -1,6 +1,7 @@
+import os
 import cgi
 import logging
-from urlparse import urljoin
+from urlparse import urljoin, urlparse
 from lxml import html
 try:
     from cStringIO import StringIO
@@ -73,6 +74,19 @@ class Page(object):
             return 'text/html'
         mime_type, _ = cgi.parse_header(content_type)
         return mime_type
+
+    @property
+    def file_name(self):
+        disp = self.response.headers.get('content-disposition')
+        if disp is not None:
+            _, attrs = cgi.parse_header(disp)
+            if 'filename' in attrs:
+                return attrs.get('filename')
+
+        parsed = urlparse(self.normalized_url)
+        file_name = os.path.basename(parsed.path)
+        if file_name is not None and len(file_name):
+            return file_name
 
     @property
     def is_html(self):

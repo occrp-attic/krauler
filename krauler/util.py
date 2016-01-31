@@ -1,5 +1,5 @@
 import urlnorm
-from urlparse import urldefrag
+from urlparse import urldefrag, urlparse
 
 
 def as_list(attr):
@@ -18,3 +18,14 @@ def normalize_url(url):
         return url
     except:
         return None
+
+
+def match_domain(domain, url):
+    domain = domain.strip('.').lower()
+    hostname = urlparse(url).hostname.lower()
+    if hostname == domain:
+        return True
+    sub_domain = '.%s' % domain
+    if hostname.endswith(sub_domain):
+        return True
+    return False
