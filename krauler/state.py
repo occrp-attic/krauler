@@ -14,6 +14,8 @@ log = logging.getLogger(__name__)
 
 class Krauler(object):
 
+    USER_AGENT = 'krauler (https://github.com/pudo/krauler)'
+
     def __init__(self, config):
         self.config = config
         self.seen = set([])
@@ -27,6 +29,8 @@ class Krauler(object):
     def session(self):
         if not hasattr(self, '_session'):
             self._session = requests.Session()
+            self._session.verify = False
+            self._session.headers['User-Agent'] = self.USER_AGENT
         return self._session
 
     @property

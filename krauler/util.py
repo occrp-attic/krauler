@@ -11,6 +11,7 @@ def as_list(attr):
 
 
 def normalize_url(url):
+    # TODO: learn from https://github.com/hypothesis/h/blob/master/h/api/uri.py
     try:
         url = urlnorm.norm(url)
         url, _ = urldefrag(url)
