@@ -45,6 +45,10 @@ class Krauler(object):
         return self.config.get('depth')
 
     @property
+    def hidden(self):
+        return self.config.get('hidden', False)
+
+    @property
     def allow_domains(self):
         if not hasattr(self, '_allow_domains'):
             self._allow_domains = []

@@ -9,6 +9,7 @@ except ImportError:
     from StringIO import StringIO
 
 from krauler.util import normalize_url
+from krauler.ua import get_ua
 
 log = logging.getLogger(__name__)
 
@@ -23,7 +24,11 @@ class Page(object):
     @property
     def response(self):
         if not hasattr(self, '_response'):
-            self._response = self.state.session.get(self.url, stream=True)
+            headers = {}
+            if self.state.hidden:
+                headers['User-Agent'] = get_ua()
+            self._response = self.state.session.get(self.url, stream=True,
+                                                    headers=headers)
         return self._response
 
     @property
