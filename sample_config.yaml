@@ -1,0 +1,22 @@
+
+path: sample
+
+meta:
+  languages:
+    - en
+
+seed: https://occrp.org
+
+retain:
+  types:
+    - documents
+    - archives
+    - images
+    - web
+
+crawl:
+  domains_deny:
+    - vis.occrp.org
+
+#   allow_domains:
+#     - occrp.org

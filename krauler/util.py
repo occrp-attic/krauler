@@ -10,6 +10,10 @@ def as_list(attr):
     return [attr]
 
 
+def get_list(obj, value):
+    return as_list(obj.get(value))
+
+
 def normalize_url(url):
     # TODO: learn from https://github.com/hypothesis/h/blob/master/h/api/uri.py
     try:
@@ -21,8 +25,15 @@ def normalize_url(url):
         return None
 
 
-def match_domain(domain, url):
+def clean_domain(domain):
+    pr = urlparse(domain)
+    domain = pr.hostname or pr.path
     domain = domain.strip('.').lower()
+    return domain
+
+
+def match_domain(domain, url):
+    domain = clean_domain(domain)
     hostname = urlparse(url).hostname.lower()
     if hostname == domain:
         return True

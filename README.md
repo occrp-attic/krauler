@@ -1,2 +1,3 @@
 # krauler
-A minimalistic web crawling tool.
+
+A minimalistic web crawling library for python.

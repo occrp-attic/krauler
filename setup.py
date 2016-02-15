@@ -23,10 +23,16 @@ setup(
     install_requires=[
         'six',
         'requests >= 2.5',
+        'metafolder',
+        'click',
         'lxml >= 3',
         'PyYAML >= 3.10',
         'urlnorm'
     ],
-    entry_points={},
+    entry_points={
+        'console_scripts': [
+            'krauler = krauler.cli:main'
+        ]
+    },
     tests_require=[]
 )
