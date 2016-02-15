@@ -59,10 +59,6 @@ class Page(object):
         return url
 
     @property
-    def id(self):
-        return self.normalized_url
-
-    @property
     def next_path(self):
         return self.path + [self.normalized_url]
 
@@ -100,11 +96,6 @@ class Page(object):
         return False
 
     def parse(self):
-        if not self.is_html:
-            return
-        if self.terminate_path:
-            return
-
         tags = [('a', 'href'), ('img', 'src'), ('link', 'href'),
                 ('iframe', 'src')]
 
@@ -128,14 +119,22 @@ class Page(object):
             return
 
         self.state.mark_seen(self.normalized_url)
+        if self.state.should_retain(self):
+            self.retain()
+            self.state.mark_seen(self.normalized_url)
+
+        if self.terminate_path:
+            return
+
         if self.response.status_code > 300:
             log.warning("Failure: %r, status: %r", self.normalized_url,
                         self.response.status_code)
             return
-        self.state.mark_seen(self.normalized_url)
 
-        if self.state.should_retain(self):
-            self.retain()
+        if not self.is_html:
+            return
+
+        self.state.mark_seen(self.normalized_url)
         self.parse()
 
     def retain(self):
