@@ -15,6 +15,9 @@ retain:
     - web
 
 crawl:
+  domains:
+    - occrp.org
+    - reportingproject.net
   domains_deny:
     - vis.occrp.org
 

@@ -104,7 +104,7 @@ class Krauler(object):
                 return False
 
         matching_domain = False
-        allow_domains = get_list(rules, 'domains') or self.seeds
+        allow_domains = get_list(rules, 'domains') + self.seeds
         if len(allow_domains):
             for domain in allow_domains:
                 matching_domain = matching_domain or match_domain(domain, url)
