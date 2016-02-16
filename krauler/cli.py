@@ -12,7 +12,8 @@ configure_logging()
 @click.argument('config', type=click.Path(exists=True))
 @click.option('--path', type=click.Path(), default=None)
 @click.option('--threads', '-t', type=int, default=None)
-def main(config, path, threads):
+@click.option('--overwrite', '-o', type=bool, default=None)
+def main(config, path, threads, overwrite):
     with open(config, 'rb') as fh:
         config = yaml.load(fh)
 
@@ -21,6 +22,9 @@ def main(config, path, threads):
 
     if threads is not None:
         config['threads'] = threads
+
+    if overwrite is not None:
+        config['overwrite'] = overwrite
 
     # TODO: validate config format
     mfk = MetaFolderKrauler(config)
