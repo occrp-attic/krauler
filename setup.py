@@ -25,6 +25,7 @@ setup(
         'requests >= 2.5',
         'metafolder',
         'click',
+        'blinker',
         'lxml >= 3',
         'PyYAML >= 3.10',
         'urlnorm'

@@ -1,4 +1,6 @@
+import logging
 import urlnorm
+import requests
 from urlparse import urldefrag, urlparse
 
 
@@ -41,3 +43,10 @@ def match_domain(domain, url):
     if hostname.endswith(sub_domain):
         return True
     return False
+
+
+def configure_logging():
+    requests.packages.urllib3.disable_warnings()
+    logging.basicConfig(level=logging.DEBUG)
+    logging.getLogger('requests').setLevel(logging.WARNING)
+    # logging.getLogger('dataset').setLevel(logging.WARNING)

@@ -9,6 +9,7 @@ from krauler.page import Page
 from krauler.util import normalize_url, get_list
 from krauler.util import match_domain
 from krauler.types import normalize_types, url_type
+from krauler.signals import on_init, on_session, on_wait
 
 log = logging.getLogger(__name__)
 
@@ -30,7 +31,9 @@ class Krauler(object):
             self._session = requests.Session()
             # TODO proxies, http://docs.python-requests.org/en/master/user/advanced/
             self._session.verify = False
-            self._session.headers['User-Agent'] = self.USER_AGENT
+            ua = self.config.get('user_agent', self.USER_AGENT)
+            self._session.headers['User-Agent'] = ua
+            on_session.send(self, session=self._session)
         return self._session
 
     @property
@@ -52,7 +55,9 @@ class Krauler(object):
     def hidden(self):
         return self.config.get('hidden', False)
 
-    def crawl(self, url, path):
+    def crawl(self, url, path=None):
+        if path is None:
+            path = []
         if self.should_crawl(url):
             self.queue.put((url, path))
 
@@ -70,17 +75,18 @@ class Krauler(object):
         finally:
             self.seen_lock.release()
 
-    def next_page(self):
-        url, path = self.queue.get()
-        log.info("Crawling %r (%d queued, %s seen)", url, self.queue.qsize(),
-                 len(self.seen))
-        try:
-            page = Page(self, url, path)
-            page.process()
-        except Exception as exc:
-            log.exception(exc)
-        finally:
-            self.queue.task_done()
+    def process_queue(self):
+        while True:
+            url, path = self.queue.get()
+            log.info("Crawling %r (%d queued, %s seen)", url,
+                     self.queue.qsize(), len(self.seen))
+            try:
+                page = Page(self, url, path)
+                page.process()
+            except Exception as exc:
+                log.exception(exc)
+            finally:
+                self.queue.task_done()
 
     def should_retain(self, page):
         rules = self.config.get('retain', {})
@@ -105,13 +111,11 @@ class Krauler(object):
                 return False
 
         matching_domain = False
-        allow_domains = get_list(rules, 'domains') + self.seeds
-        if len(allow_domains):
-            for domain in allow_domains:
-                matching_domain = matching_domain or match_domain(domain, url)
+        for domain in get_list(rules, 'domains') + self.seeds:
+            matching_domain = matching_domain or match_domain(domain, url)
 
-            if not matching_domain:
-                return False
+        if not matching_domain:
+            return False
 
         # apply regex filters
         for regex in get_list(rules, 'pattern_deny'):
@@ -140,24 +144,19 @@ class Krauler(object):
         if not len(allow_types):
             allow_types = normalize_types(['web'])
 
-        if guessed_type not in allow_types:
-            return False
-
-        return True
-
-    def thread_run(self):
-        while True:
-            self.next_page()
+        return guessed_type in allow_types
 
     def run(self):
+        on_init.send(self)
         for url in self.seeds:
-            self.crawl(url, [])
+            self.crawl(url)
 
         for i in range(self.threads):
-            t = Thread(target=self.thread_run)
+            t = Thread(target=self.process_queue)
             t.daemon = True
             t.start()
 
+        on_wait.send(self)
         self.queue.join()
 
     def emit(self, page):

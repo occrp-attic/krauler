@@ -10,6 +10,7 @@ except ImportError:
 
 from krauler.util import normalize_url
 from krauler.ua import get_ua
+from krauler.signals import on_parse
 
 log = logging.getLogger(__name__)
 
@@ -110,8 +111,10 @@ class Page(object):
                 if url is not None:
                     urls.add(url)
 
+        on_parse.send(self, urls=urls)
+
         for url in urls:
-            self.state.crawl(url, self.next_path)
+            self.state.crawl(url, path=self.next_path)
 
     def process(self):
         if not self.state.should_crawl(self.normalized_url):
@@ -119,23 +122,17 @@ class Page(object):
             return
 
         self.state.mark_seen(self.normalized_url)
-        if self.state.should_retain(self):
-            self.retain()
-            self.state.mark_seen(self.normalized_url)
-
-        if self.terminate_path:
-            return
-
         if self.response.status_code > 300:
             log.warning("Failure: %r, status: %r", self.normalized_url,
                         self.response.status_code)
             return
-
-        if not self.is_html:
-            return
-
         self.state.mark_seen(self.normalized_url)
-        self.parse()
+
+        if self.state.should_retain(self):
+            self.retain()
+
+        if self.is_html and not self.terminate_path:
+            self.parse()
 
     def retain(self):
         self.state.emit(self)
