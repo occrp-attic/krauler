@@ -26,14 +26,32 @@ class Krauler(object):
         self.queue = Queue()
 
     @property
+    def hidden(self):
+        return self.config.get('hidden', False)
+
+    @property
+    def proxies(self):
+        _proxies = {}
+        if self.hidden:
+            proxy = os.environ.get('KRAULER_HTTP_PROXY')
+            if proxy is not None:
+                _proxies['http'] = proxy
+            proxy = os.environ.get('KRAULER_HTTPS_PROXY', proxy)
+            if proxy is not None:
+                _proxies['https'] = proxy
+        _proxies.update(self.config.get('proxies', {}))
+        return _proxies
+
+    @property
     def session(self):
         if not hasattr(self, '_session'):
-            self._session = requests.Session()
-            # TODO proxies, http://docs.python-requests.org/en/master/user/advanced/
-            self._session.verify = False
+            session = requests.Session()
+            session.proxies = self.proxies
+            session.verify = False
             ua = self.config.get('user_agent', self.USER_AGENT)
-            self._session.headers['User-Agent'] = ua
-            on_session.send(self, session=self._session)
+            session.headers['User-Agent'] = ua
+            on_session.send(self, session=session)
+            self._session = session
         return self._session
 
     @property
@@ -50,10 +68,6 @@ class Krauler(object):
     @property
     def threads(self):
         return int(self.config.get('threads', 2))
-
-    @property
-    def hidden(self):
-        return self.config.get('hidden', False)
 
     def crawl(self, url, path=None):
         if path is None:
