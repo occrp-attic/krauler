@@ -3,10 +3,10 @@ import re
 import logging
 import requests
 from Queue import Queue
-from threading import RLock
+from threading import RLock, Thread
 
 from krauler.page import Page
-from krauler.util import as_list, normalize_url, get_list
+from krauler.util import normalize_url, get_list
 from krauler.util import match_domain
 from krauler.types import normalize_types, url_type
 
@@ -24,9 +24,6 @@ class Krauler(object):
         self.seen_lock = RLock()
         self.queue = Queue()
 
-    def config_list(self, name):
-        return as_list(self.config.get(name))
-
     @property
     def session(self):
         if not hasattr(self, '_session'):
@@ -39,13 +36,17 @@ class Krauler(object):
     @property
     def seeds(self):
         if not hasattr(self, '_seeds'):
-            seeds = [normalize_url(s) for s in self.config_list('seed')]
+            seeds = [normalize_url(s) for s in get_list(self.config, 'seed')]
             self._seeds = [s for s in seeds if s is not None]
         return self._seeds
 
     @property
     def depth(self):
         return self.config.get('depth')
+
+    @property
+    def threads(self):
+        return int(self.config.get('threads', 2))
 
     @property
     def hidden(self):
@@ -144,12 +145,20 @@ class Krauler(object):
 
         return True
 
+    def thread_run(self):
+        while True:
+            self.next_page()
+
     def run(self):
         for url in self.seeds:
             self.crawl(url, [])
 
-        while not self.queue.empty():
-            self.next_page()
+        for i in range(self.threads):
+            t = Thread(target=self.thread_run)
+            t.daemon = True
+            t.start()
+
+        self.queue.join()
 
     def emit(self, page):
         log.warning("Emitted: %r, no action defined to store!")
