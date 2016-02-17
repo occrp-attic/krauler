@@ -48,7 +48,7 @@ class MetaFolderKrauler(Krauler):
             meta['file_name'] = page.file_name
         meta['mime_type'] = page.mime_type
         meta['headers'] = dict(page.response.headers)
-
+        
         on_meta.send(self, page=page, meta=meta)
 
         self.metafolder.add_data(self.get_content(page),

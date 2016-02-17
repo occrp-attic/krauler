@@ -104,33 +104,46 @@ class Krauler(object):
 
     def should_retain(self, page):
         rules = self.config.get('retain', {})
-        if not self.apply_rules(page.normalized_url, rules):
+
+        if not self.apply_domain_rules(page.normalized_url, rules):
+            return False
+
+        if not self.apply_pattern_rules(page.normalized_url, rules):
             return False
 
         if not self.apply_type_rules(page.normalized_url, rules):
             return False
+
         return True
 
     def should_crawl(self, url):
         if self.is_seen(url):
             return False
-        if not self.apply_rules(url, self.config.get('crawl', {})):
+
+        if not self.apply_domain_rules(url, self.config.get('crawl', {})):
+            return False
+
+        if not self.apply_pattern_rules(url, self.config.get('crawl', {})):
             return False
         return True
 
-    def apply_rules(self, url, rules):
+    def apply_domain_rules(self, url, rules):
         # apply domain filters
         for domain in get_list(rules, 'domains_deny'):
             if match_domain(domain, url):
                 return False
 
         matching_domain = False
-        for domain in get_list(rules, 'domains') + self.seeds:
-            matching_domain = matching_domain or match_domain(domain, url)
+        allow_domains = get_list(rules, 'domains') + self.seeds
+        if len(allow_domains):
+            for domain in allow_domains:
+                matching_domain = matching_domain or match_domain(domain, url)
 
-        if not matching_domain:
-            return False
+            if not matching_domain:
+                return False
+        return True
 
+    def apply_pattern_rules(self, url, rules):
         # apply regex filters
         for regex in get_list(rules, 'pattern_deny'):
             if re.compile(regex).match(url):
@@ -144,7 +157,6 @@ class Krauler(object):
 
             if not matching_regex:
                 return False
-
         return True
 
     def apply_type_rules(self, url, rules):
