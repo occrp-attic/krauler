@@ -106,14 +106,21 @@ class Krauler(object):
         rules = self.config.get('retain', {})
 
         if not self.apply_domain_rules(page.normalized_url, rules):
+            log.info("Will not retain (domain mismatch): %r",
+                      page.normalized_url)
             return False
 
         if not self.apply_pattern_rules(page.normalized_url, rules):
+            log.info("Will not retain (pattern mismatch): %r",
+                      page.normalized_url)
             return False
 
-        if not self.apply_type_rules(page.normalized_url, rules):
+        if not self.apply_type_rules(page.mime_type, rules):
+            log.info("Will not retain (type mismatch): %r",
+                      page.normalized_url)
             return False
 
+        log.info("Retaining: %r", page.normalized_url)
         return True
 
     def should_crawl(self, url):
@@ -159,9 +166,7 @@ class Krauler(object):
                 return False
         return True
 
-    def apply_type_rules(self, url, rules):
-        guessed_type = url_type(url)
-
+    def apply_type_rules(self, guessed_type, rules):
         deny_types = get_list(rules, 'types_deny')
         if guessed_type in normalize_types(deny_types):
             return False

@@ -118,7 +118,7 @@ class Page(object):
 
     def process(self):
         if not self.state.should_crawl(self.normalized_url):
-            log.debug("Skipping: %r", self.normalized_url)
+            log.info("Skipping: %r", self.normalized_url)
             return
 
         self.state.mark_seen(self.normalized_url)
