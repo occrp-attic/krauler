@@ -175,6 +175,8 @@ class Krauler(object):
         if not len(allow_types):
             allow_types = normalize_types(['web'])
 
+        if 'any' in allow_types:
+            return True
         return guessed_type in allow_types
 
     def run(self):
