@@ -31,8 +31,9 @@ class MetaFolderKrauler(Krauler):
         if not page.is_html:
             return page.content
 
-        if self.config.get('check_path') is not None:
-            if page.doc.find('check_path') is None:
+        check_path = self.config.get('check_path')
+        if check_path is not None:
+            if page.doc.find(check_path) is None:
                 log.info("Failed XML path check: %r", page.normalized_url)
                 return None
 
