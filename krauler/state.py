@@ -40,6 +40,8 @@ class Krauler(object):
             if proxy is not None:
                 _proxies['https'] = proxy
         _proxies.update(self.config.get('proxies', {}))
+        if len(_proxies):
+            log.debug('Using proxies: %r', _proxies)
         return _proxies
 
     @property

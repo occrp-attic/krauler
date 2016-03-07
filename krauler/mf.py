@@ -66,6 +66,10 @@ class MetaFolderKrauler(Krauler):
                 return
 
         meta = self.config.get('meta', {}).copy()
+        data = self.get_content(page, meta)
+        if data is None:
+            return
+
         meta['source_url'] = page.normalized_url
         meta['foreign_id'] = page.normalized_url
         if page.file_name:
@@ -74,6 +78,4 @@ class MetaFolderKrauler(Krauler):
         meta['headers'] = dict(page.response.headers)
 
         on_meta.send(self, page=page, meta=meta)
-        data = self.get_content(page, meta)
-        if data is not None:
-            self.metafolder.add_data(data, page.normalized_url, meta=meta)
+        self.metafolder.add_data(data, page.normalized_url, meta=meta)
