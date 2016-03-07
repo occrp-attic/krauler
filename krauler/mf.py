@@ -31,6 +31,10 @@ class MetaFolderKrauler(Krauler):
         if not page.is_html:
             return page.content
 
+        if self.config.get('check_path') is not None:
+            if page.doc.find('check_path') is None:
+                return None
+
         for meta_el in ['title', 'author', 'date']:
             path = self.config.get('%s_path' % meta_el)
             if path is not None and page.doc.findtext(path):
@@ -70,7 +74,6 @@ class MetaFolderKrauler(Krauler):
         meta['headers'] = dict(page.response.headers)
 
         on_meta.send(self, page=page, meta=meta)
-
-        self.metafolder.add_data(self.get_content(page, meta),
-                                 page.normalized_url,
-                                 meta=meta)
+        data = self.get_content(page, meta)
+        if data is not None:
+            self.metafolder.add_data(data, page.normalized_url, meta=meta)
