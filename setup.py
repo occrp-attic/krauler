@@ -27,6 +27,7 @@ setup(
         'click',
         'blinker',
         'lxml >= 3',
+        'python-dateutil',
         'PyYAML >= 3.10',
         'urlnorm'
     ],

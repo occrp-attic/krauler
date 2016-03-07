@@ -1,6 +1,7 @@
 import os
 import logging
 from lxml import html
+from dateutil.parser import parse
 import metafolder
 
 from krauler.state import Krauler
@@ -26,15 +27,34 @@ class MetaFolderKrauler(Krauler):
     def overwrite(self):
         return self.config.get('overwrite', False)
 
-    def get_content(self, page):
+    def get_content(self, page, meta):
         if not page.is_html:
             return page.content
 
+        for meta_el in ['title', 'author', 'date']:
+            path = self.config.get('%s_path' % meta_el)
+            if path is not None and page.doc.findtext(path):
+                meta[meta_el] = page.doc.findtext(path)
+
+        if 'date' in meta:
+            try:
+                date = meta.pop('date')
+                date = parse(date)
+                if 'dates' not in meta:
+                    meta['dates'] = []
+                meta['dates'].append(date.isoformat())
+            except Exception as ex:
+                log.exception(ex)
+
+        body = page.doc
+        if self.config.get('body_path') is not None:
+            body = page.doc.find(self.config.get('body_path'))
+
         for path in self.config.get('remove_paths', []):
-            for el in page.doc.findall(path):
+            for el in body.findall(path):
                 el.drop_tree()
 
-        return html.tostring(page.doc)
+        return html.tostring(body)
 
     def emit(self, page):
         if not self.overwrite:
@@ -51,6 +71,6 @@ class MetaFolderKrauler(Krauler):
 
         on_meta.send(self, page=page, meta=meta)
 
-        self.metafolder.add_data(self.get_content(page),
+        self.metafolder.add_data(self.get_content(page, meta),
                                  page.normalized_url,
                                  meta=meta)
