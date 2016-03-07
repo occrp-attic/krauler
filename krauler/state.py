@@ -109,17 +109,17 @@ class Krauler(object):
 
         if not self.apply_domain_rules(page.normalized_url, rules):
             log.info("Will not retain (domain mismatch): %r",
-                      page.normalized_url)
+                     page.normalized_url)
             return False
 
         if not self.apply_pattern_rules(page.normalized_url, rules):
             log.info("Will not retain (pattern mismatch): %r",
-                      page.normalized_url)
+                     page.normalized_url)
             return False
 
         if not self.apply_type_rules(page.mime_type, rules):
             log.info("Will not retain (type mismatch): %r",
-                      page.normalized_url)
+                     page.normalized_url)
             return False
 
         log.info("Retaining: %r", page.normalized_url)
