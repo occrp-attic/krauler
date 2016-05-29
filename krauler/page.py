@@ -26,7 +26,7 @@ class Page(object):
     def response(self):
         if not hasattr(self, '_response'):
             headers = {}
-            if self.state.hidden:
+            if self.state.config.hidden:
                 headers['User-Agent'] = get_ua()
             self._response = self.state.session.get(self.url, stream=True,
                                                     headers=headers)
@@ -65,7 +65,7 @@ class Page(object):
 
     @property
     def terminate_path(self):
-        if self.state.depth is None or self.state.depth < 0:
+        if self.state.config.depth is None or self.state.config.depth < 0:
             return False
         return len(self.path) >= self.state.depth
 
