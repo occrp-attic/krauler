@@ -31,7 +31,8 @@ class Page(object):
             if self.config.hidden:
                 headers['User-Agent'] = get_ua()
             self._response = self.state.session.get(self.url, stream=True,
-                                                    headers=headers)
+                                                    headers=headers,
+                                                    timeout=120)
         return self._response
 
     def _has_response(self):
@@ -136,7 +137,7 @@ class Page(object):
             return
         self.state.mark_seen(self.url)
         if not self.config.crawl.apply(self):
-            log.info("Skipping: %r", self.url)
+            log.debug("Skipping: %r", self.url)
             return
         log.info("Crawling %r (%d queued, %s seen)", self.url,
                  self.state.queue.qsize(), len(self.state.seen))
