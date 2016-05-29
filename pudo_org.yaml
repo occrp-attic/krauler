@@ -1,0 +1,26 @@
+threads: 5
+path: sample.pudo.org
+
+meta:
+  languages:
+    - en
+
+seed: http://pudo.org
+
+retain:
+  and:
+    - pattern: '.*/blog/.*'
+    - mime_group: web
+
+crawl:
+  and:
+    - domain: pudo.org
+    - not:
+        any:
+          - mime_group: assets
+          - mime_group: images
+          - domain: data.pudo.org
+          - domain: archive.pudo.org
+          - domain: regenesis.pudo.org
+          - domain: mitzeichner.pudo.org
+          - domain: usual-suppliers.pudo.org

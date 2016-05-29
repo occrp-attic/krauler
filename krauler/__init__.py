@@ -1,6 +1,7 @@
 import logging
 
-from krauler.state import Krauler
+from krauler.crawler import Krauler
+from krauler.threaded import ThreadedKrauler
 from krauler.mf import MetaFolderKrauler
 from krauler.util import configure_logging
 

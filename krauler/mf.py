@@ -4,18 +4,18 @@ from lxml import html
 from dateutil.parser import parse
 import metafolder
 
-from krauler.state import Krauler
+from krauler.threaded import ThreadedKrauler
 from krauler.signals import on_meta
 
 log = logging.getLogger(__name__)
 
 
-class MetaFolderKrauler(Krauler):
+class MetaFolderKrauler(ThreadedKrauler):
 
     @property
     def metafolder(self):
         if not hasattr(self, '_metafolder'):
-            path = self.config.get('path', '.')
+            path = self.config.data.get('path', '.')
             path = os.path.expandvars(path)
             path = os.path.expanduser(path)
             path = os.path.abspath(path)
@@ -25,20 +25,20 @@ class MetaFolderKrauler(Krauler):
 
     @property
     def overwrite(self):
-        return self.config.get('overwrite', False)
+        return self.config.data.get('overwrite', False)
 
     def get_content(self, page, meta):
         if not page.is_html:
             return page.content
 
-        check_path = self.config.get('check_path')
+        check_path = self.config.data.get('check_path')
         if check_path is not None:
             if page.doc.find(check_path) is None:
-                log.info("Failed XML path check: %r", page.normalized_url)
+                log.info("Failed XML path check: %r", page.url)
                 return None
 
         for meta_el in ['title', 'author', 'date']:
-            path = self.config.get('%s_path' % meta_el)
+            path = self.config.data.get('%s_path' % meta_el)
             if path is not None and page.doc.findtext(path):
                 meta[meta_el] = page.doc.findtext(path)
 
@@ -53,10 +53,10 @@ class MetaFolderKrauler(Krauler):
                 log.exception(ex)
 
         body = page.doc
-        if self.config.get('body_path') is not None:
-            body = page.doc.find(self.config.get('body_path'))
+        if self.config.data.get('body_path') is not None:
+            body = page.doc.find(self.config.data.get('body_path'))
 
-        for path in self.config.get('remove_paths', []):
+        for path in self.config.data.get('remove_paths', []):
             for el in body.findall(path):
                 el.drop_tree()
 
@@ -64,20 +64,20 @@ class MetaFolderKrauler(Krauler):
 
     def emit(self, page):
         if not self.overwrite:
-            if self.metafolder.get(page.normalized_url).exists:
+            if self.metafolder.get(page.url).exists:
                 return
 
-        meta = self.config.get('meta', {}).copy()
+        meta = self.config.data.get('meta', {}).copy()
         data = self.get_content(page, meta)
         if data is None:
             return
 
-        meta['source_url'] = page.normalized_url
-        meta['foreign_id'] = page.normalized_url
+        meta['source_url'] = page.url
+        meta['foreign_id'] = page.url
         if page.file_name:
             meta['file_name'] = page.file_name
         meta['mime_type'] = page.mime_type
         meta['headers'] = dict(page.response.headers)
 
         on_meta.send(self, page=page, meta=meta)
-        self.metafolder.add_data(data, page.normalized_url, meta=meta)
+        self.metafolder.add_data(data, page.url, meta=meta)

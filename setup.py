@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='krauler',
-    version='0.1.2',
+    version='0.2.0',
     description="A minimalistic, recursive web crawling library for Python.",
     long_description="",
     classifiers=[
@@ -34,6 +34,18 @@ setup(
     entry_points={
         'console_scripts': [
             'krauler = krauler.cli:main'
+        ],
+        'krauler.rules': [
+            'or = krauler.rules:OrRule',
+            'any = krauler.rules:OrRule',
+            'and = krauler.rules:AndRule',
+            'all = krauler.rules:AndRule',
+            'not = krauler.rules:NotRule',
+            'match_all = krauler.rules:MatchAllRule',
+            'domain = krauler.domain:DomainRule',
+            'pattern = krauler.url:UrlPatternRule',
+            'mime_type = krauler.types:MimeTypeRule',
+            'mime_group = krauler.types:MimeGroupRule'
         ]
     },
     tests_require=[]

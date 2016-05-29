@@ -7,19 +7,17 @@ meta:
 
 seed: https://occrp.org
 
-retain:
-  types:
-    - documents
-    - archives
-    - images
-    - web
+# retain:
+#   types:
+#     - documents
+#     - archives
+#     - images
+#     - web
 
 crawl:
-  domains:
-    - occrp.org
-    - reportingproject.net
-  domains_deny:
-    - vis.occrp.org
-
-#   allow_domains:
-#     - occrp.org
+  and:
+    - domains:
+      - occrp.org
+      - reportingproject.net
+    - not:
+        domain: vis.occrp.org

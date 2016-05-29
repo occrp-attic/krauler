@@ -1,7 +1,8 @@
 import os
 import logging
 
-from krauler.util import normalize_url, get_list
+from krauler.url import normalize_url
+from krauler.rules import Rule
 
 log = logging.getLogger(__name__)
 
@@ -10,6 +11,14 @@ class Config(object):
 
     def __init__(self, data):
         self.data = data
+
+    def get_list(self, name):
+        value = self.data.get(name)
+        if value is None:
+            return []
+        if isinstance(value, (list, set, tuple)):
+            return value
+        return [value]
 
     @property
     def user_agent(self):
@@ -20,7 +29,7 @@ class Config(object):
     @property
     def seeds(self):
         if not hasattr(self, '_seeds'):
-            seeds = [normalize_url(s) for s in get_list(self.data, 'seed')]
+            seeds = [normalize_url(s) for s in self.get_list('seed')]
             self._seeds = [s for s in seeds if s is not None]
         return self._seeds
 
@@ -35,6 +44,16 @@ class Config(object):
     @property
     def hidden(self):
         return self.data.get('hidden', False)
+
+    @property
+    def crawl(self):
+        config = self.data.get('crawl', {'match_all': {}})
+        return Rule.get_rule(config)
+
+    @property
+    def retain(self):
+        config = self.data.get('retain', {'match_all': {}})
+        return Rule.get_rule(config)
 
     @property
     def proxies(self):
