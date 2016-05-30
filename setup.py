@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='krauler',
-    version='0.2.0',
+    version='0.2.1',
     description="A minimalistic, recursive web crawling library for Python.",
     long_description="",
     classifiers=[
