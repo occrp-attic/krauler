@@ -1,6 +1,8 @@
 import os
 import cgi
+import time
 import logging
+import requests
 import mimetypes
 from urlparse import urljoin, urlparse
 from lxml import html
@@ -14,6 +16,7 @@ from krauler.ua import get_ua
 from krauler.signals import on_parse
 
 log = logging.getLogger(__name__)
+BACKOFF_TIME = 5
 
 
 class Page(object):
@@ -24,28 +27,39 @@ class Page(object):
         self.raw_url = url
         self.path = path
 
+    def load(self):
+        headers = {}
+        if self.config.hidden:
+            headers['User-Agent'] = get_ua()
+        try:
+            return self.state.session.get(self.url,
+                                          stream=True,
+                                          headers=headers,
+                                          timeout=60)
+        except requests.RequestException as reqerr:
+            log.info("Crawl error: %r", reqerr)
+            time.sleep(BACKOFF_TIME)
+            return reqerr.response
+
     @property
     def response(self):
         if not hasattr(self, '_response'):
-            headers = {}
-            if self.config.hidden:
-                headers['User-Agent'] = get_ua()
-            self._response = self.state.session.get(self.url, stream=True,
-                                                    headers=headers,
-                                                    timeout=120)
+            self._response = self.load()
         return self._response
 
     def _has_response(self):
-        return hasattr(self, '_response')
+        return hasattr(self, '_response') and self._response is not None
 
     @property
     def content(self):
         if not hasattr(self, '_content'):
             data = StringIO()
             try:
-                for chunk in self.response.iter_content(chunk_size=1024):
-                    if chunk:
-                        data.write(chunk)
+                resp = self.response
+                if resp is not None:
+                    for chunk in resp.iter_content(chunk_size=1024):
+                        if chunk:
+                            data.write(chunk)
                 self._content = data
             finally:
                 self.response.close()
@@ -87,19 +101,21 @@ class Page(object):
             if url_type is not None and url_type != 'application/octet-stream':
                 return url_type.lower().strip('.')
         # fetch document implicitly
-        content_type = self.response.headers.get('content-type')
-        if content_type is None:
-            return 'text/html'
-        mime_type, _ = cgi.parse_header(content_type)
-        return mime_type
+        if self.response is not None:
+            content_type = self.response.headers.get('content-type')
+            if content_type is not None:
+                mime_type, _ = cgi.parse_header(content_type)
+                return mime_type
+        return 'text/html'
 
     @property
     def file_name(self):
-        disp = self.response.headers.get('content-disposition')
-        if disp is not None:
-            _, attrs = cgi.parse_header(disp)
-            if 'filename' in attrs:
-                return attrs.get('filename')
+        if self.response is not None:
+            disp = self.response.headers.get('content-disposition')
+            if disp is not None:
+                _, attrs = cgi.parse_header(disp)
+                if 'filename' in attrs:
+                    return attrs.get('filename')
 
         parsed = urlparse(self.url)
         file_name = os.path.basename(parsed.path)
@@ -142,9 +158,16 @@ class Page(object):
         log.info("Crawling %r (%d queued, %s seen)", self.url,
                  self.state.queue.qsize(), len(self.state.seen))
 
+        if self.response is None:
+            return
+
+        if self.response.status_code > 500:
+            time.sleep(BACKOFF_TIME)
+
         if self.response.status_code > 300:
             log.warning("Failure: %r, status: %r", self.url,
                         self.response.status_code)
+            self.response.connection.close()
             return
         self.state.mark_seen(self.url)
 

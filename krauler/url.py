@@ -11,6 +11,7 @@ def normalize_url(url):
     try:
         url = urlnorm.norm(url)
         url, _ = urldefrag(url)
+        url = re.sub('[\n\r]', '', url)
         url = url.rstrip('/')
         return url
     except:
